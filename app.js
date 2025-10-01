@@ -9,7 +9,7 @@ const { actualizarCitasVencidas } = require("./src/controladores/citaControlador
 dotenv.config()
 
 const allowedOrigins = [
-  'https://fron-end-v1-0.onrender.com',
+  'https://fron-end-v3-3.onrender.com',
   'http://localhost:4200',
   'https://localhost'
 ];

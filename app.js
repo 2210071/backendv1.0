@@ -8,12 +8,33 @@ const cron = require("node-cron");
 const { actualizarCitasVencidas } = require("./src/controladores/citaControlador");
 dotenv.config()
 
+const allowedOrigins = [
+  // 'https://creacioneslucianitav1-2.onrender.com',
+  'http://localhost:4200',
+  'https://localhost'
+];
+
 app.use(cors({
-    origin: "http://localhost:4200", // tu frontend Angular
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
-}));
+  origin: function(origin, callback) {
+    console.log(`🌐 Solicitud recibida desde origen: ${origin || '[sin origen]'}`);
+
+    if (!origin) {
+      console.log('✅ Se permitió acceso sin origen (ej. curl o apps nativas)');
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      console.log(`✅ Origen permitido: ${origin}`);
+      return callback(null, true);
+    } else {
+      console.warn(`❌ Origen NO permitido: ${origin}`);
+      return callback(new Error('CORS Error: Origen no permitido - ' + origin), false);
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}))
+
 
 // Cron para actualizar citas vencidas cada 5 minutos
 cron.schedule("*/5 * * * *", () => {

@@ -300,9 +300,6 @@ const registrarFactura = async (req, res) => {
     }
 };
 
-
-
-
 const listarFactura = async (req, res) =>{
     try {
         const lista = await db.factura.findAll({

@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 
 const listarModelo = async (req, res) =>{
     try {
-        const lista = await db.modelo.findAll({
+        const lista = await db.z.findAll({
             include: [
               {model: db.marca},
               
@@ -167,9 +167,6 @@ const buscarVehiculo = async (req, res) => {
         res.status(500).json({ mensaje: 'Error al buscar personas' });
     }
 };
-
-
-
 
 const registrarVehiculo = async (req, res) => {
     try {

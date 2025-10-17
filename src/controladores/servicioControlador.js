@@ -106,7 +106,7 @@ const buscarServicio = async (req, res) => {
 
 const FiltroReporteServicio = async (req, res) => {
   try {
-    const { metodo, nombre, estado, fechaDesde, fechaHasta } = req.query;
+    const {personal, nombre, estado, fechaDesde, fechaHasta } = req.query;
 
     const filtros = {
       where: {},
@@ -144,13 +144,18 @@ const FiltroReporteServicio = async (req, res) => {
       filtros.where[Op.or] = [
         { '$vehiculo.cliente.persona.nombre$': { [Op.iLike]: `%${nombre}%` } },
         { '$vehiculo.cliente.persona.ap_paterno$': { [Op.iLike]: `%${nombre}%` } },
-        {'$vehiculo.cliente.persona.ap_materno$': { [Op.iLike]: `%${nombre}%` } }
+        {'$vehiculo.cliente.persona.ap_materno$': { [Op.iLike]: `%${nombre}%` } },
+        {'$personal.persona.nombre$': { [Op.iLike]: `%${nombre}%` } },
       ];
     }
 
     // Filtro por estado (1 = Activo, 0 = Bloqueado, etc.)
     if (estado) {
       filtros.where.id_estado = estado;
+    }
+
+    if (personal) {
+      filtros.where.id_persona = personal;
     }
 
     // Filtro por fecha

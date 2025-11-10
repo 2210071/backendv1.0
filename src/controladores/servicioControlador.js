@@ -106,78 +106,87 @@ const buscarServicio = async (req, res) => {
 
 const FiltroReporteServicio = async (req, res) => {
   try {
-    const {personal, nombre, estado, fechaDesde, fechaHasta } = req.query;
+    const { personal, nombre, estado, metodo_pago, fechaDesde, fechaHasta } = req.query;
 
     const filtros = {
       where: {},
-     include: [
-                {model: db.detalle_servicio,
-                    include:[
-                        {model: db.catalogo}
-                    ]
-                },
-                {model: db.personal,
-                    include: [{
-                        model: db.persona
-                    }]
-                },
-              {model: db.estado},
-              
-              {model: db.vehiculo,
-                include: [{model: db.cliente,
-                    include:[{
-                        model: db.persona
-                    }]
-                }, {model: db.tipo_vehiculo}]
-              },
-              {model: db.factura, as: "factura",
-                include:[
-                    {model: db.mpago}
-                ]
-              },
-            ],
-            order: [['id_servicio', 'DESC']]
+      include: [
+        {
+          model: db.detalle_servicio,
+          include: [{ model: db.catalogo }]
+        },
+        {
+          model: db.personal,
+          include: [{ model: db.persona }]
+        },
+        { model: db.estado },
+        {
+          model: db.vehiculo,
+          include: [
+            {
+              model: db.cliente,
+              include: [{ model: db.persona }]
+            },
+            { model: db.tipo_vehiculo },
+            { model: db.modelo }
+          ]
+        },
+        {
+          model: db.factura,
+          as: "factura",
+            required: metodo_pago ? true : false,
+          include: [
+            {
+              model: db.mpago,
+              required: metodo_pago ? true : false, // 🔹 Solo exige si hay filtro
+              where: metodo_pago ? { id_met: metodo_pago } : undefined
+            }
+          ]
+        },
+      ],
+      order: [['id_servicio', 'DESC']]
     };
 
-    // Filtro por nombre o apellidos (similar a búsqueda por texto)
+    // 🔹 Filtros generales
     if (nombre) {
       filtros.where[Op.or] = [
         { '$vehiculo.cliente.persona.nombre$': { [Op.iLike]: `%${nombre}%` } },
         { '$vehiculo.cliente.persona.ap_paterno$': { [Op.iLike]: `%${nombre}%` } },
-        {'$vehiculo.cliente.persona.ap_materno$': { [Op.iLike]: `%${nombre}%` } },
-        {'$personal.persona.nombre$': { [Op.iLike]: `%${nombre}%` } },
+        { '$vehiculo.cliente.persona.ap_materno$': { [Op.iLike]: `%${nombre}%` } },
+        { '$personal.persona.nombre$': { [Op.iLike]: `%${nombre}%` } },
       ];
     }
 
-    // Filtro por estado (1 = Activo, 0 = Bloqueado, etc.)
-    if (estado) {
-      filtros.where.id_estado = estado;
-    }
+    if (estado) filtros.where.id_estado = estado;
+    if (personal) filtros.where.id_persona = personal;
 
-    if (personal) {
-      filtros.where.id_persona = personal;
-    }
-
-    // Filtro por fecha
     if (fechaDesde && fechaHasta) {
-      filtros.where.fecha = {
-        [Op.between]: [fechaDesde, fechaHasta]
-      };
+      filtros.where.fecha = { [Op.between]: [fechaDesde, fechaHasta] };
     } else if (fechaDesde) {
-      filtros.where.fecha = {
-        [Op.gte]: fechaDesde
-      };
+      filtros.where.fecha = { [Op.gte]: fechaDesde };
     } else if (fechaHasta) {
-      filtros.where.fecha = {
-        [Op.lte]: fechaHasta
-      };
+      filtros.where.fecha = { [Op.lte]: fechaHasta };
     }
 
+    // 🔹 Ejecutar búsqueda
     const resultado = await db.servicio.findAll(filtros);
-    return res.json(resultado);
+
+    // 🔹 Calcular total de precios de cada servicio
+    const serviciosConTotales = resultado.map(serv => {
+      const total = serv.detalle_servicios?.reduce(
+        (acc, det) => acc + (det.precio || 0),
+        0
+      );
+      return {
+        ...serv.toJSON(),
+        total_precio: total || 0
+      };
+    });
+
+    return res.json(serviciosConTotales);
   } catch (error) {
-    console.error("Error al filtrar personas:", error);
-    res.status(500).json({ mensaje: "Error al filtrar personas" });
+    console.error("Error al filtrar servicios:", error);
+    res.status(500).json({ mensaje: "Error al filtrar servicios" });
   }
 };
 

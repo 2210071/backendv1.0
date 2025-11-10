@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 
 const listarModelo = async (req, res) =>{
     try {
-        const lista = await db.z.findAll({
+        const lista = await db.modelo.findAll({
             include: [
               {model: db.marca},
               

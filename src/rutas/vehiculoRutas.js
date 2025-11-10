@@ -6,6 +6,7 @@ const {listarVehiculo, registrarVehiculo,  buscarVehiculo,listarColor, FiltroRep
 
 router.get('/listarVehiculo', verificarToken, listarVehiculo);
 router.get('/listarModelo', verificarToken, listarModelo);
+
 router.get('/listarTipo', verificarToken, listarTipo);
 router.get('/FiltroReporteVehiculo',verificarToken,FiltroReporteVehiculo)
 router.get('/listarColor', verificarToken, listarColor);

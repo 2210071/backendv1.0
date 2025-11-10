@@ -4,10 +4,12 @@ const { Op } = require('sequelize');
 const listarPersonal = async (req, res) =>{
     try {
         const lista = await db.personal.findAll({
-            include:[{model: db.persona, 
+            include:[ 
+              {model: db.imagen},
+              {model: db.persona, 
                 include: [
                     {model: db.roles, as:"roles"},
-                    {model: db.estado}     
+                    {model: db.estado}    
                 ]
                }] ,
 
@@ -74,18 +76,19 @@ const buscarPersonal = async (req, res) => {
 const registrarPersonal = async (req, res) => {
   const t = await sequelize.transaction();
   try {
+     const idimagen = req.body.imagen?.id_imagen;
     const idRol = req.body.roles?.id_rol;
     const idEstado = req.body.estado?.id_estado;
 
     // Crear persona
     const nuevaPersona = await db.persona.create(
-      { ...req.body, id_rol: idRol, id_estado: idEstado },
+      { ...req.body, id_rol: idRol, id_estado: idEstado},
       { transaction: t }
     );
 
     // Crear personal asociado
     const nuevoPersonal = await db.personal.create(
-      { ...req.body, id_persona: nuevaPersona.id_persona },
+      { ...req.body, id_persona: nuevaPersona.id_persona,  id_imagen: idimagen},
       { transaction: t }
     );
 
@@ -105,24 +108,82 @@ const registrarPersonal = async (req, res) => {
 
 
 // modificar persona/personal
+// const modificarPersonal = async (req, res) => {
+//   const id = req.params.id; // id_persona
+//   const t = await sequelize.transaction();  // 🔹 corregido
+//   try {
+//     // Actualizar persona
+//     await db.persona.update(req.body, {
+//       where: { id_persona: id },
+//       transaction: t
+//     });
+
+//     // Actualizar personal (si existe para esa persona)
+//     await db.personal.update(req.body, {
+//       where: { id_persona: id },
+//       transaction: t
+//     });
+
+//     await t.commit();
+//     res.status(200).json({ mensaje: "Persona y personal modificados correctamente" });
+
+//   } catch (error) {
+//     await t.rollback();
+//     console.error(error);
+//     res.status(500).json({ mensaje: "Error al modificar persona/personal" });
+//   }
+// };
+// modificar persona/personal
 const modificarPersonal = async (req, res) => {
   const id = req.params.id; // id_persona
-  const t = await sequelize.transaction();  // 🔹 corregido
+  const t = await sequelize.transaction();
   try {
-    // Actualizar persona
+    const { imagen } = req.body; // ✅ imagen puede venir o no
+    let idImagenFinal = null;
+
+    // 🔹 Buscar si ya existe personal con imagen
+    const personalExistente = await db.personal.findOne({
+      where: { id_persona: id },
+      include: [{ model: db.imagen }],
+      transaction: t
+    });
+
+    // 🔹 Si viene nueva imagen en el body
+    if (imagen && imagen.nombre) {
+      if (personalExistente?.imagen) {
+        // ✅ Ya tiene imagen → solo actualizamos el nombre
+        await db.imagen.update(
+          { nombre: imagen.nombre },
+          { where: { id_imagen: personalExistente.imagen.id_imagen }, transaction: t }
+        );
+        idImagenFinal = personalExistente.imagen.id_imagen;
+      } else {
+        // ❗ No tiene imagen → creamos nueva
+        const nuevaImg = await db.imagen.create(
+          { nombre: imagen.nombre },
+          { transaction: t }
+        );
+        idImagenFinal = nuevaImg.id_imagen;
+      }
+    } else if (personalExistente?.imagen) {
+      // ✅ Si no viene imagen nueva, dejamos la actual
+      idImagenFinal = personalExistente.imagen.id_imagen;
+    }
+
+    // 🔹 Actualizar persona
     await db.persona.update(req.body, {
       where: { id_persona: id },
       transaction: t
     });
 
-    // Actualizar personal (si existe para esa persona)
-    await db.personal.update(req.body, {
-      where: { id_persona: id },
-      transaction: t
-    });
+    // 🔹 Actualizar personal y su relación con imagen
+    await db.personal.update(
+      { ...req.body, id_imagen: idImagenFinal },
+      { where: { id_persona: id }, transaction: t }
+    );
 
     await t.commit();
-    res.status(200).json({ mensaje: "Persona y personal modificados correctamente" });
+    res.status(200).json({ mensaje: "Persona, personal e imagen modificados correctamente" });
 
   } catch (error) {
     await t.rollback();
@@ -130,6 +191,7 @@ const modificarPersonal = async (req, res) => {
     res.status(500).json({ mensaje: "Error al modificar persona/personal" });
   }
 };
+
 
 
 

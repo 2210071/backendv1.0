@@ -84,7 +84,7 @@ const generarPDFFactura = async (factura) => {
 
     // Columna izquierda: Casa matriz
     doc.fontSize(8).fillColor(colorTexto);
-    doc.text('Taller Pereira', xIzquierda, yEncabezado);
+    doc.text('Mecánica Automotriz Germán Pereira', xIzquierda, yEncabezado);
      doc.text('CASA MATRIZ', xIzquierda, yEncabezado+12);
     doc.text('No Punto de venta 0', xIzquierda, yEncabezado + 24);
     doc.text(`${taller.direccion}`, xIzquierda, yEncabezado + 36);
